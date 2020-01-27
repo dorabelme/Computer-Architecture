@@ -8,16 +8,40 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
+        # 256 bytes of memory
         self.ram = [0] * 256
-        self.register = [0] * 8
+        # 8 general-purpose registers
+        self.reg = [0] * 8
+        # PC
         self.pc = 0
-        self.halt = False
+        # Commands
+        self.commands = {
+            0b00000001: self.hlt,
+            0b10000010: self.ldi,
+            0b01000111: self.prn
+        }
+    # accepts the address in RAM and returns the value stored there
 
     def ram_read(self, address):
         return self.ram[address]
 
-    def ram_write(self, address, value):
-        return self.ram[address] = value
+    # accepts a value to write, and the address to write it to.
+    def ram_write(self, value, address):
+        self.ram[address] = value
+
+    # halt the CPU and exit the emulator
+    def hlt(self, operand_a, operand_b):
+        return (0, False)
+    # load immediate, store a value in a register, or set this register to this value
+
+    def ldi(self, operand_a, operand_b):
+        self.reg[operand_a] = operand_b
+        return (3, True)
+
+    # prints the numeric value stored in a register
+    def prn(self, operand_a, operand_b):
+        print(self.reg[operand_a])
+        return (2, True)
 
     def load(self):
         """Load a program into memory."""
@@ -71,4 +95,20 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        running = True
+
+        while running:
+            instruction_register = self.ram_read(self.pc)
+
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+
+            try:
+                operation_op = self.commands[instruction_register](operand_a, operand_b
+                                                                   )
+                running = operation_op[1]
+                self.pc += operation_op[0]
+
+            except:
+                print(f"Error: Instruction {instruction_register} not found!")
+                sys.exit(1)
