@@ -18,10 +18,11 @@ class CPU:
         self.commands = {
             0b00000001: self.hlt,
             0b10000010: self.ldi,
-            0b01000111: self.prn
+            0b01000111: self.prn,
+            0b10100010: self.mul
         }
-    # accepts the address in RAM and returns the value stored there
 
+    # accepts the address in RAM and returns the value stored there
     def ram_read(self, address):
         return self.ram[address]
 
@@ -32,8 +33,8 @@ class CPU:
     # halt the CPU and exit the emulator
     def hlt(self, operand_a, operand_b):
         return (0, False)
-    # load immediate, store a value in a register, or set this register to this value
 
+    # load immediate, store a value in a register, or set this register to this value
     def ldi(self, operand_a, operand_b):
         self.reg[operand_a] = operand_b
         return (3, True)
@@ -43,26 +44,45 @@ class CPU:
         print(self.reg[operand_a])
         return (2, True)
 
-    def load(self):
+    # multiply the values in two registers together and store the result in registerA
+    def mul(self, operand_a, operand_b):
+        # calling alu function
+        self.alu("MUL", operand_a, operand_b)
+        return (3, True)
+
+    # loading from a file
+    def load(self, program):
         """Load a program into memory."""
 
         address = 0
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010,  # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111,  # PRN R0
+        #     0b00000000,
+        #     0b00000001,  # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
+
+        with open(program) as f:
+            for line in f:
+                comment_split = line.split('#')
+                num = comment_split[0].strip()
+
+                try:
+                    self.ram_write(int(num, 2), address)
+                    address += 1
+                except ValueError:
+                    print("Value error")
+                    pass
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -70,6 +90,8 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         # elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b])
         else:
             raise Exception("Unsupported ALU operation")
 
