@@ -14,12 +14,20 @@ class CPU:
         self.reg = [0] * 8
         # PC
         self.pc = 0
+        # stack pointer (SP)
+        self.sp = 255
+
+        # self.mdr = 0
         # Commands
         self.commands = {
             0b00000001: self.hlt,
             0b10000010: self.ldi,
             0b01000111: self.prn,
-            0b10100010: self.mul
+            0b10100010: self.mul,
+            0b01000101: self.push,
+            0b01000110: self.pop,
+            0b01010000: self.call,
+            0b00010011: self.iret
         }
 
     # accepts the address in RAM and returns the value stored there
@@ -49,6 +57,34 @@ class CPU:
         # calling alu function
         self.alu("MUL", operand_a, operand_b)
         return (3, True)
+
+    def push(self, operand_a, operand_b):
+        reg_address = self.ram[self.pc + 1]
+        self.sp -= 1
+        value = self.reg[reg_address]
+        self.ram[self.sp] = value
+        return (2, True)
+
+    def pop(self, operand_a, operand_b):
+        pop_value = self.ram[self.sp]
+        reg_address = self.ram[self.pc + 1]
+        self.reg[reg_address] = pop_value
+        self.sp += 1
+        return (2, True)
+
+    def call(self, operand_a, *args):
+
+        self.sp -= 1
+        self.ram_write(self.sp, self.pc)
+        self.push(operand_a)
+        self.pc = self.mdr - 2
+
+    def iret(self, *args):
+        """
+        Pop the value from the top of the stack and store it in the PC
+        """
+        self.pop(self.mdr)
+        self.pc = self.ram[self.sp] + 1
 
     # loading from a file
     def load(self, program):
@@ -121,16 +157,20 @@ class CPU:
 
         while running:
             instruction_register = self.ram_read(self.pc)
+            # print(instruction_register)
 
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
             try:
-                operation_op = self.commands[instruction_register](operand_a, operand_b
-                                                                   )
+                f = self.commands[instruction_register]
+                # print(f)
+                operation_op = f(operand_a, operand_b
+                                 )
                 running = operation_op[1]
                 self.pc += operation_op[0]
 
-            except:
+            except Exception as e:
                 print(f"Error: Instruction {instruction_register} not found!")
+                # print(e)
                 sys.exit(1)
